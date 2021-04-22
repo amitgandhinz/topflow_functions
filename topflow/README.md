@@ -9,7 +9,7 @@
 python3 main.py 'add' 'SYMBOL' 'PRICE' 'TWEETID' 'QUALITY'
 
 For Example: 
-```python main.py 'add' 'ADSK 210618C290' '15.60' '3' '1385299336263831555'```
+```python main.py 'add' 'ADSK 210618C290' '15.60' '1385299336263831555' '3' ```
 
 ## Update symbols in the watchlist
 ```python3 main.py 'update'```
