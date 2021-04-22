@@ -1,0 +1,7 @@
+datetime
+flask
+firebase_admin
+robin_stocks
+python-dateutil
+pyotp
+twitivity
