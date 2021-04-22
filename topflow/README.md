@@ -8,8 +8,11 @@
 ## Add a new symbol to the watchlist
 python3 main.py 'add' 'SYMBOL' 'PRICE' 'TWEETID' 'QUALITY'
 
+For Example: 
+```python main.py 'add' 'ADSK 210618C290' '15.60' '3' '1385299336263831555'```
+
 ## Update symbols in the watchlist
-python3 main.py 'update'
+```python3 main.py 'update'```
 
 ## Deploy to Google Cloud Functions
 - gcloud functions deploy update_flow --env-vars-file .env.yaml --runtime python38 --trigger-http
