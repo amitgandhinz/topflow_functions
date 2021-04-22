@@ -382,13 +382,3 @@ def main(args = None):
 
 main(args = sys.argv)
 
-'''
-# gcloud functions deploy update_flow --env-vars-file .env.yaml --runtime python38 --trigger-http
-# gcloud functions deploy twitter --env-vars-file .env.yaml --runtime python38 --trigger-http --allow-unauthenticated
-# https://stackoverflow.com/questions/46746604/firestore-new-database-how-do-i-backup
-#   EXPORT ALL: gcloud firestore export gs://optionsflow_backup
-#   IMPORT ALL: gcloud firestore import gs://optionsflow_backup/2021-03-23T18:28:18_84965/ 
-
-# python3 main.py 'add' 'SYMBOL' 'PRICE' 'TWEETID' 'QUALITY'
-# python3 main.py 'update'
-'''
