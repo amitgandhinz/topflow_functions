@@ -10,9 +10,7 @@ if __name__ == "__main__":
         webhook_id='1373111214344179713'
         )
     print(
-        activity.register_webhook(
-            callback_url="https://us-central1-optionstracker-aa7f7.cloudfunctions.net/twitter"
-        )
+        activity.register_webhook("https://us-central1-optionstracker-aa7f7.cloudfunctions.net/twitter")
     )
     print(activity.subscribe())
 

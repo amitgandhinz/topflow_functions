@@ -350,20 +350,23 @@ def update_flow(request):
 
 # Entry Point: Twitter WebHooks
 def twitter(request):
+    print("Twitter Hook", request)
     if request.method == "GET" or request.method == "PUT":
         hash_digest = hmac.digest(
             key=os.environ.get("consumer_secret").encode("utf-8"),
             msg=request.args.get("crc_token").encode("utf-8"),
             digest=hashlib.sha256,
         )
+        print("returning CRC Response Token", hash_digest)
         return {
             "response_token": "sha256="
             + base64.b64encode(hash_digest).decode("ascii")
         }
     elif request.method == "POST":
+        print ("Parsing a Twitter Post")
         data = request.get_json()
         parseTwitterPost(data)
-        return {"code": 200}
+        return {"Successfully Parsed Twitter Request": 200}
 
 
 def main(args = None):
