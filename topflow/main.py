@@ -22,8 +22,7 @@ class Helpers:
     def __init__(self):
         # initialize with firebase
         if not firebase_admin._apps:
-            cred = credentials.Certificate('serviceAccountKey.json') 
-            default_app = firebase_admin.initialize_app(cred)
+            default_app = firebase_admin.initialize_app()
 
         self.firestore_db = firestore.client()
 
@@ -79,25 +78,38 @@ class Helpers:
 
         # create the symbol json
         symbol_json = self.parse_symbol(symbol)
-        contract = {
+        tfContract = {
             'symbol': symbol_json["symbol"],
             'max_price': 0,
             'low_price': 999999,
             'current_open_interest': 0,
             "is_expired": symbol_json["expiration"] < datetime.datetime.now(),
+        }
+
+        userEntry = {
+            'symbol': symbol_json["symbol"],
+            "badges": {},
             "entry_date": datetime.datetime.now().strftime("%Y-%m-%d"),
             "entry_price": float(entry_price),
+            "exit_price": None,
+            "exit_date": None,
             "tweet_id": tweet_id,
             "flow_quality": quality
         }
 
         print ('adding ', symbol)
 
-        # add data
-        self.firestore_db.collection(u'topflow').document(symbol).set(contract)
+        # add topflow data
+        self.firestore_db.collection(u'topflow').document(symbol).set(tfContract)
+
+        # add public data
+        self.firestore_db.collection(u'users').document("public").collection("journal").document(symbol).set(userEntry)
+        # add to my private journal also
+        self.firestore_db.collection(u'users').document("JbVEnS9uhWR3HEcOYBWE1uKsliz2").collection("journal").document(symbol).set(userEntry)
+
 
         # update data
-        self.updateFlowData(symbol, contract)
+        self.updateFlowData(symbol, tfContract)
 
     def update_data(self):
         # pull the list of TopFlow collection and fetch data for each existing symbol that is not expired
@@ -134,6 +146,7 @@ class Helpers:
 
         previous_oi = flow_dict["current_open_interest"]
 
+        """
         entry_price = float(flow_dict["entry_price"])
 
         # determine new badges to earn
@@ -161,7 +174,6 @@ class Helpers:
             if gain > 0 and "coal" in badges:
                 badges.pop('coal')
                 badges["diamond"] = True
-
         else:
             # hasnt exited position yet
             if 'poop' not in badges:
@@ -170,6 +182,7 @@ class Helpers:
                     # current position went below 50%, but buyer is still there so may still work.
                     badges["coal"] = True
 
+        """
                 
 
         # create the updated contract
@@ -179,8 +192,7 @@ class Helpers:
             'low_price': min_price,
             'current_open_interest': open_interest,
             "is_expired": symbol_json['expiration'] < datetime.datetime.now(),
-            "badges": badges,
-            "last_updated": firestore.SERVER_TIMESTAMP
+            "last_updated": firestore.SERVER_TIMESTAMP,
         }
 
 
@@ -213,6 +225,7 @@ class Helpers:
 
                 self.addMessage(symbol, m)
 
+                """
                 if percentage_change < -30 and 'my_exit_date' not in flow_dict:
                     # OI decreased by more than 30%, and havent yet exited
                     badges["poop"] = True
@@ -220,7 +233,7 @@ class Helpers:
                         'badges': badges
                     }
                     self.firestore_db.collection(u'topflow').document(symbol).update(contract)
-
+                """
 
     def addMessage(self, symbol, message):
         print('activity: ' + message)

@@ -2,8 +2,11 @@
 
 ## Setup Environment Variables
 1. create an `.env.yaml` file from the `sample.env.yaml` and populate with your Twitter and Robinhood Credentials
-2. Create a `serviceAccountKey.json` file from your Firebase configuration
-3. When running locally, run `python yaml_to_env.py` and load your environment variables to your local shell.
+2. Create a `.GOOGLE.json` file using your Firebase configuration
+3. Load your credentials file for Google so your local env can have access to firebase.  In production, give your google function a service account to firebase.
+```export GOOGLE_APPLICATION_CREDENTIALS=.GOOGLE.json```
+
+4. When running locally, run `python yaml_to_env.py` and copy paste the output to load your environment variables to your local shell.
 
 ## Add a new symbol to the watchlist
 python3 main.py 'add' 'SYMBOL' 'PRICE' 'TWEETID' 'QUALITY'
