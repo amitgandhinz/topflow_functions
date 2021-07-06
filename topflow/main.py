@@ -1,8 +1,9 @@
 import base64
 import datetime
+from pickle import TRUE
 import dateutil.parser
 import firebase_admin
-import flask
+import json
 import hashlib
 import hmac
 import os
@@ -76,15 +77,7 @@ class Helpers:
 
     def add_flow(self, symbol, entry_price, tweet_id, quality):
 
-        # create the symbol json
         symbol_json = self.parse_symbol(symbol)
-        tfContract = {
-            'symbol': symbol_json["symbol"],
-            'max_price': 0,
-            'low_price': 999999,
-            'current_open_interest': 0,
-            "is_expired": symbol_json["expiration"] < datetime.datetime.now(),
-        }
 
         userEntry = {
             'symbol': symbol_json["symbol"],
@@ -97,10 +90,7 @@ class Helpers:
             "flow_quality": quality
         }
 
-        print ('adding ', symbol)
-
-        # add topflow data
-        self.firestore_db.collection(u'topflow').document(symbol).set(tfContract)
+        print ('adding to watchlist ', symbol)
 
         # add public data
         self.firestore_db.collection(u'users').document("public").collection("journal").document(symbol).set(userEntry)
@@ -108,8 +98,24 @@ class Helpers:
         self.firestore_db.collection(u'users').document("JbVEnS9uhWR3HEcOYBWE1uKsliz2").collection("journal").document(symbol).set(userEntry)
 
 
+    def track_flow(self, symbol):
+        # create the symbol json
+        symbol_json = self.parse_symbol(symbol)
+        tfContract = {
+            'symbol': symbol_json["symbol"],
+            'max_price': 0,
+            'low_price': 999999,
+            'current_open_interest': 0,
+            "is_expired": symbol_json["expiration"] < datetime.datetime.now(),
+        }
+
+        # add topflow data
+        self.firestore_db.collection(u'topflow').document(symbol).set(tfContract)
+
         # update data
+        self.getHistoricalData(symbol, True)
         self.updateFlowData(symbol, tfContract)
+
 
     def update_data(self):
         # pull the list of TopFlow collection and fetch data for each existing symbol that is not expired
@@ -380,6 +386,30 @@ def twitter(request):
         data = request.get_json()
         parseTwitterPost(data)
         return {"Successfully Parsed Twitter Request": 200}
+
+# Entry Point: Firestore Trigger
+def newFlowTrigger(data, context):
+    """ Triggered by a change to a Firestore document.
+    Args:
+        data (dict): The event payload.
+        context (google.cloud.functions.Context): Metadata for the event.
+    """
+    trigger_resource = context.resource
+
+    print('Function triggered by change to: %s' % trigger_resource)
+
+    newData = data["value"]["fields"]
+    print(newData)
+    symbol = newData["symbol"]["stringValue"]
+
+    print('\nNew value:')
+    print (symbol)
+
+    h = Helpers()
+    h.track_flow(symbol)
+    h.getHistoricalData(symbol, True)
+
+    return f"OK"
 
 
 def main(args = None):
