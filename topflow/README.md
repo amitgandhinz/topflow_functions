@@ -46,8 +46,8 @@ python3 main.py 'update'
 ```
 
 ## Install Google Cloud SDK
-- ```$ curl https://sdk.cloud.google.com | bash```
-- ```$ gcloud init```
+- ```sh curl https://sdk.cloud.google.com | bash```
+- ```sh gcloud init```
 - then log in to your google cloud account in the browser
 - then select the project to link to where your firestore and cloud functions are connected to
 
@@ -72,9 +72,17 @@ gcloud functions deploy newFlowTrigger --env-vars-file .env.yaml \
 ```
 
 ## Backup or Restore a Firestore Database
-- https://stackoverflow.com/questions/46746604/firestore-new-database-how-do-i-backup
--   EXPORT ALL: ```$ gcloud firestore export gs://optionsflow_backup ```
--   IMPORT ALL: ```$ gcloud firestore import gs://optionsflow_backup/2021-03-23T18:28:18_84965/ ```
+https://stackoverflow.com/questions/46746604/firestore-new-database-how-do-i-backup
+
+EXPORT ALL: 
+```sh 
+gcloud firestore export gs://optionsflow_backup 
+```
+
+IMPORT ALL: 
+```sh 
+gcloud firestore import gs://optionsflow_backup/2021-03-23T18:28:18_84965/ 
+```
 
 
 
