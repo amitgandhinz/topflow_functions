@@ -31,6 +31,8 @@ python yaml_to_env.py
 then, copy paste the output to load your environment variables to your local shell.
 
 ## Add a new symbol to the watchlist
+
+### via Command Line:
 ```sh
 python3 main.py 'add' 'SYMBOL' 'PRICE' 'TWEETID' 'QUALITY' 
 ```
@@ -38,6 +40,11 @@ python3 main.py 'add' 'SYMBOL' 'PRICE' 'TWEETID' 'QUALITY'
 For Example: 
 ```sh
 python3 main.py 'add' 'ADSK 210716C290' '15.60' '1385299336263831555' '3'
+```
+
+### via Twitter:
+```sh
+$HOME 210416C31 at $199.99 [$$$]
 ```
 
 ## Update symbols in the watchlist
@@ -55,17 +62,25 @@ python3 main.py 'update'
 
 Update Flow Data
 ```sh
-gcloud functions deploy update_flow --env-vars-file .env.yaml --runtime python38 --trigger-http 
+gcloud functions deploy update_flow \
+--env-vars-file .env.yaml \
+--runtime python38 \
+--trigger-http 
 ```
 
 Trigger from Twitter Tweets
 ```sh
-gcloud functions deploy twitter --env-vars-file .env.yaml --runtime python38 --trigger-http --allow-unauthenticated 
+gcloud functions deploy twitter \
+--env-vars-file .env.yaml \
+--runtime python38 \
+--trigger-http \
+--allow-unauthenticated 
 ```
 
 Trigger from Firestore Create Records
 ```sh
-gcloud functions deploy newFlowTrigger --env-vars-file .env.yaml \
+gcloud functions deploy newFlowTrigger \
+--env-vars-file .env.yaml \
 --runtime python39 \
 --trigger-event "providers/cloud.firestore/eventTypes/document.create" \
 --trigger-resource "projects/optionstracker-aa7f7/databases/(default)/documents/users/{userid}/journal/{symbol}"
