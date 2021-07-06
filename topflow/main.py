@@ -95,7 +95,7 @@ class Helpers:
         # add public data
         self.firestore_db.collection(u'users').document("public").collection("journal").document(symbol).set(userEntry)
         # add to my private journal also
-        self.firestore_db.collection(u'users').document("JbVEnS9uhWR3HEcOYBWE1uKsliz2").collection("journal").document(symbol).set(userEntry)
+        # self.firestore_db.collection(u'users').document("JbVEnS9uhWR3HEcOYBWE1uKsliz2").collection("journal").document(symbol).set(userEntry)
 
 
     def track_flow(self, symbol):
@@ -109,12 +109,14 @@ class Helpers:
             "is_expired": symbol_json["expiration"] < datetime.datetime.now(),
         }
 
-        # add topflow data
-        self.firestore_db.collection(u'topflow').document(symbol).set(tfContract)
+        # add topflow data if it doesnt already exit
+        existing_flow = self.firestore_db.collection(u'topflow').document(symbol).get()
+        if not existing_flow.exists:
+            self.firestore_db.collection(u'topflow').document(symbol).set(tfContract)
 
-        # update data
-        self.getHistoricalData(symbol, True)
-        self.updateFlowData(symbol, tfContract)
+            # update data
+            self.getHistoricalData(symbol, True)
+            self.updateFlowData(symbol, tfContract)
 
 
     def update_data(self):
