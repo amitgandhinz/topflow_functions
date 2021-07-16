@@ -87,7 +87,8 @@ class Helpers:
             "exit_price": None,
             "exit_date": None,
             "tweet_id": tweet_id,
-            "flow_quality": quality
+            "flow_quality": quality,
+            "trade_type": 0
         }
 
         print ('adding to watchlist ', symbol)
@@ -126,7 +127,10 @@ class Helpers:
         for flow in topflow:
             flow_dict = flow.to_dict()
             symbol = flow_dict["symbol"]
-            self.updateFlowData(symbol, flow_dict)
+            try:
+                self.updateFlowData(symbol, flow_dict)
+            except:
+                print("Could not update flow for ", symbol)
             
 
     def updateFlowData(self, symbol, flow_dict):
@@ -303,7 +307,24 @@ class Helpers:
                 self.firestore_db.collection(u'topflow').document(symbol).collection("historical_price").document(today).set(oi)
 
 
+    # Copy trades from public to private amits journal
+    def copy_flow(self):
+    # get current public flow
+        self.firestore_db = firestore.client()
+        publicTrades = self.firestore_db.collection(u'users').document(u'public').collection('journal').get()
+        
+        # for each trade
+        for doc in publicTrades:
+            # print(f'{doc.id} => {doc._data}')
+            # if it doesnt exist in private journal
+            privateTrade = self.firestore_db.collection(u'users').document(u'JbVEnS9uhWR3HEcOYBWE1uKsliz2').collection('journal').document(doc.id).get()
+            if not privateTrade.exists:
+                # copy the trade over 
+                print("copy trade: ", doc.id)
+                self.firestore_db.collection(u'users').document(u'JbVEnS9uhWR3HEcOYBWE1uKsliz2').collection('journal').document(doc.id).set(doc._data)
 
+            else:
+                print ("trade already exists:", doc.id)
 
 # CMDLine: add a new top flow to the db
 def add_flow(request):
@@ -398,14 +419,10 @@ def newFlowTrigger(data, context):
     """
     trigger_resource = context.resource
 
-    print('Function triggered by change to: %s' % trigger_resource)
+    print('Track new flow from: %s' % trigger_resource)
 
     newData = data["value"]["fields"]
-    print(newData)
     symbol = newData["symbol"]["stringValue"]
-
-    print('\nNew value:')
-    print (symbol)
 
     h = Helpers()
     h.track_flow(symbol)
@@ -426,7 +443,7 @@ def main(args = None):
             h.add_flow(symbol, entry_price, tweet_id, quality)
         elif args is not None and args[1] == 'update' :
             h.update_data()
-
+        
 
 main(args = sys.argv)
 
