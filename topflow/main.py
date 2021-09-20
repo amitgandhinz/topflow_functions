@@ -75,7 +75,7 @@ class Helpers:
 
         return symbol_json
 
-    def add_flow(self, symbol, entry_price, tweet_id, quality):
+    def add_flow(self, symbol, entry_price, tweet_id, quality, watching=False):
 
         symbol_json = self.parse_symbol(symbol)
 
@@ -90,6 +90,9 @@ class Helpers:
             "flow_quality": quality,
             "trade_type": 0
         }
+
+        if watching:
+            userEntry["badges"] = {'watching': True}
 
         print ('adding to watchlist ', symbol)
 
@@ -107,7 +110,7 @@ class Helpers:
             'max_price': 0,
             'low_price': 999999,
             'current_open_interest': 0,
-            "is_expired": symbol_json["expiration"] < datetime.datetime.now(),
+            "is_expired": symbol_json["expiration"].date() < datetime.datetime.now().date(),
         }
 
         # add topflow data if it doesnt already exit
@@ -203,7 +206,7 @@ class Helpers:
             'max_price': max_price,
             'low_price': min_price,
             'current_open_interest': open_interest,
-            "is_expired": symbol_json['expiration'] < datetime.datetime.now(),
+            "is_expired": symbol_json['expiration'].date() < datetime.datetime.now().date(),
             "last_updated": firestore.SERVER_TIMESTAMP,
         }
 
@@ -222,11 +225,11 @@ class Helpers:
         self.firestore_db.collection(u'topflow').document(symbol).update(contract)
         self.firestore_db.collection(u'topflow').document(symbol).collection("open_interest").document(today).set(oi)
 
-        # add a message if the OI changes drastically (more than 30% either direction)
+        # add a message if the OI changes drastically (more than 30% either direction) and increased over 1K OI
         if previous_oi > 0:
             percentage_change = ((open_interest - previous_oi) / previous_oi) * 100
 
-            if abs(percentage_change) > 30:
+            if abs(percentage_change) > 30 and (open_interest >= 1000 or previous_oi >= 1000):
                 m = "{symbol} Open Interest {direction} {change}% from {prevoi} to {newoi}.".format(
                     symbol = symbol,
                     direction = 'increased' if percentage_change > 0 else 'decreased',
@@ -235,6 +238,10 @@ class Helpers:
                     newoi = open_interest
                 )
 
+                self.addMessage(symbol, m)
+
+            if percentage_change > 30 and previous_oi >= 1000:
+                m = "Whale Back For More!"
                 self.addMessage(symbol, m)
 
                 """
@@ -440,7 +447,7 @@ def main(args = None):
             entry_price = args[3]
             tweet_id= args[4]
             quality=args[5]
-            h.add_flow(symbol, entry_price, tweet_id, quality)
+            h.add_flow(symbol, entry_price, tweet_id, quality, True)
         elif args is not None and args[1] == 'update' :
             h.update_data()
         
