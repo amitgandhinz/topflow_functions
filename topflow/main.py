@@ -132,14 +132,27 @@ class Helpers:
             symbol = flow_dict["symbol"]
             try:
                 self.updateFlowData(symbol, flow_dict)
-            except:
-                print("Could not update flow for ", symbol)
+            except Exception as e:
+                print("Could not update flow for ", symbol, str(e))
             
 
     def updateFlowData(self, symbol, flow_dict):
         print("Fetch Data for ", symbol)
         symbol_json = self.parse_symbol(symbol)
 
+
+        if symbol_json['expiration'].date() < datetime.datetime.now().date():
+            # already expired, mark it as such
+            print ("Contract already expired: ", symbol)
+            contract = {
+                "is_expired": symbol_json['expiration'].date() < datetime.datetime.now().date(),
+                "last_updated": firestore.SERVER_TIMESTAMP,
+            }
+
+            self.firestore_db.collection(u'topflow').document(symbol).update(contract)
+            return
+
+            
         data = robin_stocks.robinhood.options.get_option_market_data(
                                         inputSymbols=symbol_json['ticker'],
                                         expirationDate=symbol_json['expiration'].strftime("%Y-%m-%d"),
@@ -157,7 +170,7 @@ class Helpers:
         current_low = float(flow_dict['low_price'])
         
         max_price =  max(max_price, current_max)
-        min_price =  min(low_price, current_low) if low_price is not None and low_price > 0 else current_low
+        min_price =  min(low_price, current_low) if low_price is not None and low_price > 0.01 else current_low
 
         previous_oi = flow_dict["current_open_interest"]
 
@@ -200,12 +213,18 @@ class Helpers:
         """
                 
 
+         # add the daily price for this symbol
+        currentPricing = self.getHistoricalData(symbol, False)
+
+        print (currentPricing)
+
         # create the updated contract
         contract = {
             'symbol': symbol,
             'max_price': max_price,
             'low_price': min_price,
             'current_open_interest': open_interest,
+            'last_close': currentPricing['close_price'] if currentPricing is not None else 0,
             "is_expired": symbol_json['expiration'].date() < datetime.datetime.now().date(),
             "last_updated": firestore.SERVER_TIMESTAMP,
         }
@@ -220,10 +239,16 @@ class Helpers:
         today = datetime.datetime.now().strftime("%Y-%m-%d")
 
         # add data to db
-        # add the daily price for this symbol
-        self.getHistoricalData(symbol, False)
+       
+       
         self.firestore_db.collection(u'topflow').document(symbol).update(contract)
         self.firestore_db.collection(u'topflow').document(symbol).collection("open_interest").document(today).set(oi)
+
+        oi_query = self.firestore_db.collection(u'topflow').document(symbol).collection("open_interest")
+        oi_snapshot = oi_query.get()
+        oi_count = len(oi_snapshot)
+        weeklyExp = symbol_json['expiration'].date() < (datetime.datetime.today() + datetime.timedelta(days=7)).date(),
+        print (oi_count, symbol)
 
         # add a message if the OI changes drastically (more than 30% either direction) and increased over 1K OI
         if previous_oi > 0:
@@ -240,9 +265,20 @@ class Helpers:
 
                 self.addMessage(symbol, m)
 
-            if percentage_change > 30 and previous_oi >= 1000:
-                m = "Whale Back For More!"
+            # if this is a flow play (we know since i uploaded the flow_data), then check for revisiting whales
+            
+            # OI bumped up and we have been tracking this already for at least a week (and not an ETF)
+            ignoreList = ["SPY", "QQQ"]
+            if percentage_change > 30 and previous_oi >= 1000 and not weeklyExp and oi_count > 7 and not any([x in symbol for x in ignoreList]):
+                m = "Whale Reloading?"
                 self.addMessage(symbol, m)
+
+            # OI bumped up and the options price is -50% from the max_price
+            if percentage_change > 30 and not weeklyExp and (currentPricing is not None and currentPricing['low_price'] < max_price * 0.5):
+                m = "Whale Dip Buying?"
+                self.addMessage(symbol, m)
+
+
 
                 """
                 if percentage_change < -30 and 'my_exit_date' not in flow_dict:
@@ -263,6 +299,7 @@ class Helpers:
         }
         self.firestore_db.collection(u'activity').document().set(m)
 
+   
 
     def getHistoricalData(self, symbol, is_new):
 
@@ -304,7 +341,7 @@ class Helpers:
                 oi = {
                     'date': tick['begins_at'],
                     'open_price': open_price,
-                    'low_price': low_price,
+                    'low_price': low_price if low_price > 0.01 else min(open_price, close_price),
                     'high_price': high_price,
                     'close_price': close_price
                 }
@@ -312,6 +349,10 @@ class Helpers:
                 today = dateutil.parser.parse(tick['begins_at']).strftime("%Y-%m-%d")
 
                 self.firestore_db.collection(u'topflow').document(symbol).collection("historical_price").document(today).set(oi)
+
+                return oi
+        else:
+            return None
 
 
     # Copy trades from public to private amits journal
